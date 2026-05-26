@@ -22,16 +22,29 @@ export const FlowerArt: React.FC<FlowerArtProps> = ({
   const currentBrightness = isHovered ? brightness + 15 : brightness;
   const currentZIndex = isHovered ? 30 : zIndex; // Ensure hovered flower pops cleanly above front paper
 
+  const adjustColorBrightness = (hex: string, percent: number): string => {
+    let hexClean = hex.replace("#", "");
+    if (hexClean.length === 3) {
+      hexClean = hexClean[0] + hexClean[0] + hexClean[1] + hexClean[1] + hexClean[2] + hexClean[2];
+    }
+    const num = parseInt(hexClean, 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+    const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00ff) + amt));
+    const B = Math.min(255, Math.max(0, (num & 0x0000ff) + amt));
+    const hexResult = (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    return `#${hexResult}`;
+  };
+
   // Generate helper colors for CSS art gradients
   const getLighterColor = (hex: string): string => {
-    // Basic tint mapping
     if (hex === '#e11d48') return '#fda4af'; // pink
     if (hex === '#db2777') return '#fbcfe8'; // lighter pink
     if (hex === '#fb7185') return '#ffe4e6'; // warm bloom pink
     if (hex === '#eab308') return '#fef08a'; // pale yellow
     if (hex === '#ea580c') return '#ffedd5'; // cream orange
     if (hex === '#15522e' || hex === '#114224' || hex === '#0d331b') return '#4ade80'; // soft leaf green
-    return '#ffffff';
+    return adjustColorBrightness(hex, 25);
   };
 
   const getDarkerColor = (hex: string): string => {
@@ -41,7 +54,7 @@ export const FlowerArt: React.FC<FlowerArtProps> = ({
     if (hex === '#eab308') return '#854d0e';
     if (hex === '#ea580c') return '#7c2d12';
     if (hex === '#15522e') return '#052e16';
-    return '#475569';
+    return adjustColorBrightness(hex, -25);
   };
 
   const lighterColor = getLighterColor(color);

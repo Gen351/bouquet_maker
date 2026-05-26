@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  bouquetLayout, 
-  messageDetails, 
   wrappingThemes, 
-  ribbonThemes 
+  ribbonThemes,
+  backgroundThemes,
+  staticFoliage,
+  FLOWER_SLOTS
 } from './data';
-import { BouquetItem, WrappingTheme, RibbonTheme, MessageDetail } from './types';
+import { BouquetItem, WrappingTheme, RibbonTheme, MessageDetail, BackgroundTheme } from './types';
 import { BouquetCanvas } from './components/BouquetCanvas';
 import { Modal } from './components/Modal';
 import { 
@@ -18,26 +19,220 @@ import {
   HeartHandshake,
   CheckCircle,
   HelpCircle,
-  Flower
+  Flower,
+  Plus,
+  Trash2,
+  Download,
+  Upload,
+  Eye,
+  X,
+  BookOpen,
+  Maximize
 } from 'lucide-react';
+
+const DEFAULT_FLOWERS: MessageDetail[] = [
+  {
+    id: 'M1',
+    title: 'A Radiance of Joy',
+    theme: 'sunflower',
+    body: 'As the central sunflower in our bouquet, this flower represents pure energy, adoration, and standard-bearing happiness. Just as sunflowers track the path of the sun to expand their life force, we invite you to orient your sights toward light, positive actions, and constant growth.',
+    imageUrl: ''
+  },
+  {
+    id: 'M2',
+    title: 'Grace & Fresh Beginnings',
+    theme: 'tulip',
+    body: 'The rose-red tulip stands as a classic symbol of genuine care, affection, and fresh, resilient beginnings. Tulips bloom in cold soil during early spring, showing us how soft layers can yield incredible strength and stand beautifully upright in changing winds.',
+    imageUrl: ''
+  },
+  {
+    id: 'M3',
+    title: 'The Dance of Velvet Petals',
+    theme: 'tulip',
+    body: 'A deep orchid-pink tulip represents confident grace, loyalty, and deep, lasting bonds of friendship. This vibrant blossom adds rich emotional balance to the bouquet. Let it whisper appreciation for those who add comfort and sweet laughs to your daily journey.',
+    imageUrl: ''
+  },
+  {
+    id: 'M4',
+    title: 'Whisper of Pearl Coral',
+    theme: 'tulip',
+    body: 'Tucked elegantly at the very front focal point, this coral pastel tulip serves as the anchor of our bouquet. It bridges the flaming yellows and emerald leaves with its quiet velvet texture, reminding us that of all forms of expression, active gratitude is the most beautiful.',
+    imageUrl: ''
+  }
+];
+
+export const LEAF_COLORS = [
+  { id: 'green', name: 'Forest Green', hex: '#15803d', shadow: '#14532d', bright: '#22c55e', description: 'Classic fresh evergreen foliage' },
+  { id: 'yellow', name: 'Golden Harvest', hex: '#ca8a04', shadow: '#713f12', bright: '#facc15', description: 'Vibrant autumn golden yellow leaves' },
+  { id: 'orange', name: 'Sunset Amber', hex: '#ea580c', shadow: '#854d0e', bright: '#fdba74', description: 'Warm glowing maple amber leaves' },
+  { id: 'red', name: 'Fireside Crimson', hex: '#b91c1c', shadow: '#7f1d1d', bright: '#f87171', description: 'Deep elegant crimson red foliage' },
+];
 
 export default function App() {
   // Page states
   const [selectedPaper, setSelectedPaper] = useState<WrappingTheme>(wrappingThemes[0]);
   const [selectedRibbon, setSelectedRibbon] = useState<RibbonTheme>(ribbonThemes[0]);
+  const [selectedBackground, setSelectedBackground] = useState<BackgroundTheme>(backgroundThemes[0]);
+  const [selectedLeafColor, setSelectedLeafColor] = useState<string>('green');
   const [customMsg, setCustomMsg] = useState<string>('Wishing you endless sunshine!');
   const [hoveredFlowerId, setHoveredFlowerId] = useState<string | null>(null);
   const [selectedFlowerMsg, setSelectedFlowerMsg] = useState<string | null>(null);
   const [showShareNotification, setShowShareNotification] = useState<boolean>(false);
+  const [showFullscreenPreview, setShowFullscreenPreview] = useState<boolean>(false);
 
-  // Core editable botanical letters state
-  const [editableMessages, setEditableMessages] = useState<Record<string, MessageDetail>>(messageDetails);
+  // Dynamic state for adding/editing flowers (Starts with default of 4 message flowers)
+  const [activeFlowers, setActiveFlowers] = useState<MessageDetail[]>(DEFAULT_FLOWERS);
   const [editingLetterId, setEditingLetterId] = useState<string>('M1');
+  
+  // JSON Import storage
+  const [importJsonText, setImportJsonText] = useState<string>('');
+  const [showImportArea, setShowImportArea] = useState<boolean>(false);
 
-  // Math stats
-  const interactiveFlowers = bouquetLayout.filter(f => f.msg);
-  const leafCount = bouquetLayout.filter(f => f.type === 'leaf').length;
-  const flowerCount = bouquetLayout.filter(f => f.type !== 'leaf').length;
+  // Compute dynamic combined bouquet layout consisting of fillers and the custom active message flowers
+  const dynamicBouquetLayout = useMemo(() => {
+    const selectedPalette = LEAF_COLORS.find(c => c.id === selectedLeafColor) || LEAF_COLORS[0];
+    
+    // Map leafy greens organically to custom colors if override is active
+    const mappedFoliage = staticFoliage.map(item => {
+      if (item.type === 'leaf') {
+        let mappedColor = item.color;
+        if (selectedLeafColor !== 'green') {
+          // Check if deep/backing, mid, or light border foliage
+          if (item.color === '#15522e' || item.color === '#114224' || item.color === '#0d331b') {
+            mappedColor = selectedPalette.shadow;
+          } else if (item.color === '#22c55e' || item.color === '#16a34a') {
+            mappedColor = selectedPalette.bright;
+          } else {
+            mappedColor = selectedPalette.hex;
+          }
+        }
+        return { ...item, color: mappedColor };
+      }
+      return item;
+    });
+
+    const list: BouquetItem[] = [...mappedFoliage];
+    const N = activeFlowers.length;
+    // Scale all flowers down dynamically if there are many active layout items to look decent
+    const scaleFactor = Math.max(0.72, 1.0 - Math.max(0, N - 4) * 0.045);
+
+    activeFlowers.forEach((flower, index) => {
+      const slot = FLOWER_SLOTS[Math.min(index, FLOWER_SLOTS.length - 1)];
+      
+      // Rotate blossom coloring palette to build organic diversity
+      const color = flower.theme === 'sunflower' 
+        ? (index % 3 === 0 ? '#facc15' : index % 3 === 1 ? '#ea580c' : '#eab308')
+        : (index % 3 === 0 ? '#e11d48' : index % 3 === 1 ? '#db2777' : '#fb7185');
+
+      list.push({
+        id: `flower-${flower.id}`,
+        type: flower.theme,
+        x: slot.x,
+        y: slot.y,
+        color: color,
+        scale: slot.scale * scaleFactor,
+        zIndex: slot.zIndex,
+        brightness: 100,
+        msg: flower.id,
+        rotation: slot.rotation
+      });
+    });
+
+    return list;
+  }, [activeFlowers, selectedLeafColor]);
+
+  // Compute live dictionary details mapping
+  const editableMessages = useMemo(() => {
+    const map: Record<string, MessageDetail> = {};
+    activeFlowers.forEach(f => {
+      map[f.id] = f;
+    });
+    return map;
+  }, [activeFlowers]);
+
+  // Math stats computed reactively
+  const interactiveFlowers = useMemo(() => {
+    return dynamicBouquetLayout.filter(f => f.msg);
+  }, [dynamicBouquetLayout]);
+
+  const leafCount = useMemo(() => {
+    return dynamicBouquetLayout.filter(f => f.type === 'leaf').length;
+  }, [dynamicBouquetLayout]);
+
+  const flowerCount = useMemo(() => {
+    return dynamicBouquetLayout.filter(f => f.type !== 'leaf').length;
+  }, [dynamicBouquetLayout]);
+
+  // Compute atmospheric background particles based on active theme
+  const backgroundParticles = useMemo(() => {
+    const bgId = selectedBackground.id;
+    const particles = [];
+    
+    let type = 'dot';
+    let colors = ['rgba(255,255,255,0.7)'];
+    
+    if (bgId === 'classic' || bgId === 'cherry') {
+      type = 'petal';
+      colors = ['#fbcfe8', '#f3a8c3', '#f472b6', '#fda4af'];
+    } else if (bgId === 'city' || bgId === 'cosmic' || bgId === 'aurora' || bgId === 'bedroom') {
+      type = 'star';
+      colors = bgId === 'aurora' ? ['#a7f3d0', '#6ee7b7', '#fff', '#34d399'] : ['#fef08a', '#fda4af', '#fef3c7', '#fff'];
+    } else if (bgId === 'jungle' || bgId === 'forest') {
+      type = 'leaf';
+      colors = bgId === 'jungle' ? ['#4ade80', '#22c55e', '#bef264', '#fbbf24'] : ['#15803d', '#a3e635', '#22c55e', '#eab308'];
+    } else if (bgId === 'taiga') {
+      type = 'dot';
+      colors = ['rgba(45, 212, 191, 0.4)', 'rgba(20, 184, 166, 0.3)', 'rgba(255,255,255,0.2)'];
+    } else if (bgId === 'desert' || bgId === 'sunset') {
+      type = 'ember';
+      colors = ['#ef4444', '#f97316', '#f59e0b', '#fb7185', '#ea580c'];
+    } else if (bgId === 'ocean' || bgId === 'snow') {
+      type = 'bubble';
+      colors = bgId === 'ocean' ? ['rgba(14, 165, 233, 0.4)', 'rgba(56, 189, 248, 0.3)', 'rgba(255,255,255,0.45)'] : ['#ffffff', '#e0f2fe', '#bae6fd'];
+    } else if (bgId === 'school') {
+      type = 'dot';
+      colors = ['rgba(255,255,255,0.25)', 'rgba(254,240,138,0.2)'];
+    }
+    
+    for (let i = 0; i < 15; i++) {
+      const sizeVal = 5 + (i * 7 + 13) % 12; // 5 to 17px
+      const leftVal = (i * 23 + 7) % 100;
+      const delayVal = ((i * 1.3) % 8).toFixed(1);
+      const durationVal = 8 + ((i * 3.7) % 10);
+      const color = colors[i % colors.length];
+      
+      let animationClass = 'animate-drift-down';
+      if (type === 'ember' || type === 'bubble') {
+        animationClass = 'animate-drift-up';
+      } else if (type === 'star' || type === 'dot') {
+        animationClass = 'animate-float-gentle';
+      }
+      
+      particles.push({
+        id: `part-${i}`,
+        className: animationClass,
+        style: {
+          position: 'absolute',
+          left: `${leftVal}%`,
+          width: `${sizeVal}px`,
+          height: `${sizeVal}px`,
+          backgroundColor: type !== 'star' ? color : 'transparent',
+          backgroundImage: type === 'star' ? `radial-gradient(circle, ${color} 20%, transparent 80%)` : undefined,
+          borderRadius: type === 'petal' ? '0 100% 0 100%' : type === 'leaf' ? '50% 0 50% 0' : '50%',
+          boxShadow: type === 'ember' ? `0 0 10px ${color}` : type === 'bubble' ? 'inset 0 0 4px rgba(255,255,255,0.6)' : undefined,
+          animationDelay: `${delayVal}s`,
+          '--drift-duration': `${durationVal}s`,
+          '--float-duration': `${durationVal - 3}s`,
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          transformOrigin: 'center',
+        } as React.CSSProperties
+      });
+    }
+    
+    return particles;
+  }, [selectedBackground]);
 
   // Handle active flower selection to trigger modal & set current editor ID
   const handleSelectFlowerItem = (item: BouquetItem) => {
@@ -48,23 +243,67 @@ export default function App() {
   };
 
   // Helper to dynamically update fields on a localized message
-  const handleUpdateLetterField = (id: string, field: 'title' | 'body' | 'imageUrl', value: string) => {
-    setEditableMessages(prev => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        [field]: value
+  const handleUpdateLetterField = (id: string, field: 'title' | 'body' | 'imageUrl' | 'theme', value: string) => {
+    setActiveFlowers(prev => prev.map(f => {
+      if (f.id === id) {
+        return { ...f, [field]: value };
       }
+      return f;
     }));
+  };
+
+  // Add a new message flower dynamically (limits at max support slot length to maintain high visual standard)
+  const handleAddFlower = () => {
+    if (activeFlowers.length >= FLOWER_SLOTS.length) {
+      alert(`The arrangement reaches peak visual harmony at ${FLOWER_SLOTS.length} letter sprouts. Any more would overflow the wrap folds!`);
+      return;
+    }
+    const nextNum = activeFlowers.length + 1;
+    const newId = `M${nextNum}`;
+    const newTheme = nextNum % 2 === 0 ? 'sunflower' : 'tulip';
+    const newFlower: MessageDetail = {
+      id: newId,
+      title: `Ethereal Blossom ${nextNum}`,
+      theme: newTheme,
+      body: `This newly sprouted blossom is index ${nextNum} in our responsive bouquet. You can fully customize its name and symbolical message below.`,
+      imageUrl: ''
+    };
+    setActiveFlowers(prev => [...prev, newFlower]);
+    setEditingLetterId(newId);
+  };
+
+  // Remove the specified flower and automatically re-index the remaining ones chronologically
+  const handleRemoveFlower = (id: string) => {
+    if (activeFlowers.length <= 1) {
+      alert("At least one message flower is required to preserve the bouquet core.");
+      return;
+    }
+    setActiveFlowers(prev => {
+      const filtered = prev.filter(f => f.id !== id);
+      const remapped = filtered.map((f, idx) => ({
+        ...f,
+        id: `M${idx + 1}`
+      }));
+      
+      // Sync active view ID
+      const stillExists = remapped.some(f => f.id === editingLetterId);
+      if (!stillExists && remapped.length > 0) {
+        setEditingLetterId(remapped[remapped.length - 1].id);
+      }
+      return remapped;
+    });
   };
 
   // Reset to default crafting state
   const handleReset = () => {
     setSelectedPaper(wrappingThemes[0]);
     setSelectedRibbon(ribbonThemes[0]);
+    setSelectedBackground(backgroundThemes[0]);
     setCustomMsg('Wishing you endless sunshine!');
-    setEditableMessages(messageDetails);
+    setActiveFlowers(DEFAULT_FLOWERS);
     setEditingLetterId('M1');
+    setImportJsonText('');
+    setShowImportArea(false);
   };
 
   // Generate of unified HTML, CSS, & JS code of just the bouquet excluding the editor dashboard
@@ -79,8 +318,6 @@ export default function App() {
   <style>
     :root {
       --scaler: 1;
-      --bg-start: #fff9fb;
-      --bg-end: #ffeef3;
       --paper-back: ${selectedPaper.backColor};
       --paper-mid: ${selectedPaper.midColor};
       --paper-front: ${selectedPaper.frontColor};
@@ -97,7 +334,7 @@ export default function App() {
     }
 
     body {
-      background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      background: ${selectedBackground.cssBackground};
       font-family: 'Inter', sans-serif;
       min-height: 100vh;
       display: flex;
@@ -105,7 +342,7 @@ export default function App() {
       align-items: center;
       justify-content: center;
       overflow-x: hidden;
-      color: #292524;
+      color: ${selectedBackground.textColor};
       padding: 30px 15px;
     }
 
@@ -113,6 +350,25 @@ export default function App() {
     @keyframes float {
       0%, 100% { transform: translateY(0) rotate(0deg); }
       50% { transform: translateY(-12px) rotate(0.8deg); }
+    }
+
+    @keyframes drift-down-right {
+      0% { transform: translateY(-50px) translateX(-50px) rotate(0deg); opacity: 0; }
+      15% { opacity: 0.8; }
+      85% { opacity: 0.8; }
+      100% { transform: translateY(110vh) translateX(120px) rotate(360deg); opacity: 0; }
+    }
+
+    @keyframes drift-up-left {
+      0% { transform: translateY(110vh) translateX(50px) scale(0.8); opacity: 0; }
+      20% { opacity: 0.7; }
+      80% { opacity: 0.7; }
+      100% { transform: translateY(-100px) translateX(-100px) scale(1.2); opacity: 0; }
+    }
+
+    @keyframes float-gentle {
+      0%, 100% { transform: translateY(0px) translateX(0px) scale(1) rotate(0deg); opacity: 0.3; }
+      50% { transform: translateY(-30px) translateX(20px) scale(1.1) rotate(15deg); opacity: 0.85; }
     }
 
     @keyframes sway-slow {
@@ -772,8 +1028,10 @@ export default function App() {
   </style>
 </head>
 <body>
+  <!-- Atmospheric background drift overlay particles -->
+  <div id="atmosphere" style="position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;"></div>
 
-  <div class="bouquet-scaler-wrapper">
+  <div class="bouquet-scaler-wrapper" style="position: relative; z-index: 10;">
     <div class="bouquet-scaler-box">
       <div class="bouquet-wrapper">
         <!-- Paper Wrap Back -->
@@ -800,7 +1058,7 @@ export default function App() {
         <div class="wrap-skirt"></div>
 
         <!-- Ribbon Knot & Bow -->
-        <div class="ribbon-assembly" style="left: 50%; top: 77%;">
+        <div class="ribbon-assembly" id="ribbon-target-el" style="left: 50%; top: 77%; cursor: help;" title="Keep press on ribbon to copy bouquet config JSON string.">
           <div class="ribbon-skirt-tail-l"></div>
           <div class="ribbon-skirt-tail-r"></div>
           <div class="ribbon-petal-loop-l">
@@ -839,7 +1097,7 @@ export default function App() {
 
   <script>
     // Config layout array mapping items
-    const layout = ${JSON.stringify(bouquetLayout)};
+    const layout = ${JSON.stringify(dynamicBouquetLayout)};
 
     // Message profiles details
     const messages = ${JSON.stringify(editableMessages)};
@@ -1084,6 +1342,86 @@ export default function App() {
       modalScreen.style.display = 'none';
     }
 
+    // Generate background atmosphere particles matching selected background
+    const bgId = ${JSON.stringify(selectedBackground.id)};
+    function injectAtmosphere() {
+      const container = document.getElementById('atmosphere');
+      if (!container) return;
+      
+      let type = 'dot';
+      let colors = ['rgba(255,255,255,0.7)'];
+      
+      if (bgId === 'classic' || bgId === 'cherry') {
+        type = 'petal';
+        colors = ['#fbcfe8', '#f3a8c3', '#f472b6', '#fda4af'];
+      } else if (bgId === 'city' || bgId === 'cosmic' || bgId === 'aurora' || bgId === 'bedroom') {
+        type = 'star';
+        colors = bgId === 'aurora' ? ['#a7f3d0', '#6ee7b7', '#fff', '#34d399'] : ['#fef08a', '#fda4af', '#fef3c7', '#fff'];
+      } else if (bgId === 'jungle' || bgId === 'forest') {
+        type = 'leaf';
+        colors = bgId === 'jungle' ? ['#4ade80', '#22c55e', '#bef264', '#fbbf24'] : ['#15803d', '#a3e635', '#22c55e', '#eab308'];
+      } else if (bgId === 'taiga') {
+        type = 'dot';
+        colors = ['rgba(45, 212, 191, 0.4)', 'rgba(20, 184, 166, 0.3)', 'rgba(255,255,255,0.2)'];
+      } else if (bgId === 'desert' || bgId === 'sunset') {
+        type = 'ember';
+        colors = ['#ef4444', '#f97316', '#f59e0b', '#fb7185', '#ea580c'];
+      } else if (bgId === 'ocean' || bgId === 'snow') {
+        type = 'bubble';
+        colors = bgId === 'ocean' ? ['rgba(14, 165, 233, 0.4)', 'rgba(56, 189, 248, 0.3)', 'rgba(255,255,255,0.45)'] : ['#ffffff', '#e0f2fe', '#bae6fd'];
+      } else if (bgId === 'school') {
+        type = 'dot';
+        colors = ['rgba(255,255,255,0.25)', 'rgba(254,240,138,0.2)'];
+      }
+
+      for (let i = 0; i < 15; i++) {
+        const p = document.createElement('div');
+        const sizeVal = 5 + (i * 7 + 13) % 12;
+        const leftVal = (i * 23 + 7) % 100;
+        const delayVal = ((i * 1.3) % 8).toFixed(1);
+        const durationVal = 8 + ((i * 3.7) % 10);
+        const color = colors[i % colors.length];
+
+        p.style.position = 'absolute';
+        p.style.left = leftVal + '%';
+        p.style.top = '-20px';
+        p.style.width = sizeVal + 'px';
+        p.style.height = sizeVal + 'px';
+        p.style.pointerEvents = 'none';
+        p.style.opacity = '0';
+        p.style.zIndex = '0';
+
+        if (type === 'star') {
+          p.style.backgroundImage = 'radial-gradient(circle, ' + color + ' 20%, transparent 80%)';
+          p.style.animation = 'float-gentle ' + (durationVal - 3) + 's ease-in-out infinite';
+          p.style.top = ((i * 17 + 12) % 95) + '%';
+        } else {
+          p.style.backgroundColor = color;
+          if (type === 'petal' || type === 'leaf') {
+            p.style.borderRadius = type === 'petal' ? '0 100% 0 100%' : '50% 0 50% 0';
+            p.style.animation = 'drift-down-right ' + durationVal + 's linear infinite';
+          } else if (type === 'ember') {
+            p.style.borderRadius = '50%';
+            p.style.boxShadow = '0 0 10px ' + color;
+            p.style.animation = 'drift-up-left ' + durationVal + 's linear infinite';
+            p.style.top = '105%';
+          } else if (type === 'bubble') {
+            p.style.borderRadius = '50%';
+            p.style.boxShadow = 'inset 0 0 4px rgba(255,255,255,0.6)';
+            p.style.animation = 'drift-up-left ' + durationVal + 's linear infinite';
+            p.style.top = '105%';
+          } else {
+            p.style.borderRadius = '50%';
+            p.style.animation = 'float-gentle ' + (durationVal - 3) + 's ease-in-out infinite';
+            p.style.top = ((i * 17 + 12) % 95) + '%';
+          }
+        }
+
+        p.style.animationDelay = delayVal + 's';
+        container.appendChild(p);
+      }
+    }
+
     function adjustScale() {
       const parentWidth = window.innerWidth - 30;
       const parentHeight = window.innerHeight - 60;
@@ -1093,8 +1431,47 @@ export default function App() {
       document.documentElement.style.setProperty('--scaler', scale);
     }
     window.addEventListener('resize', adjustScale);
-    window.addEventListener('DOMContentLoaded', adjustScale);
+    window.addEventListener('DOMContentLoaded', () => {
+      adjustScale();
+      injectAtmosphere();
+    });
     adjustScale();
+    setTimeout(injectAtmosphere, 100);
+
+    // Ribbon Long Press Config Exporter
+    const ribbonEl = document.getElementById('ribbon-target-el');
+    const bouquetPresets = {
+      paperId: ${JSON.stringify(selectedPaper.id)},
+      ribbonId: ${JSON.stringify(selectedRibbon.id)},
+      backgroundId: ${JSON.stringify(selectedBackground.id)},
+      leafColor: ${JSON.stringify(selectedLeafColor)},
+      customMsg: ${JSON.stringify(customMsg)},
+      flowers: ${JSON.stringify(activeFlowers)}
+    };
+
+    let ribbonPressTimer;
+    function startRibbonPress(e) {
+      if (e.type === 'mousedown' && e.button !== 0) return;
+      ribbonPressTimer = setTimeout(() => {
+        const jsonStr = JSON.stringify(bouquetPresets, null, 2);
+        navigator.clipboard.writeText(jsonStr).then(() => {
+          alert("✨ Bouquet Style Preset Copied Successfully to Clipboard!\\n\\nYou can share this JSON string or import it back inside the application to replicate this stunning arrangement:\\n\\n" + jsonStr);
+        }).catch(() => {
+          alert("✨ Bouquet Preset Highlighted!\\n\\nCopy the configuration layout string below to share or import later:\\n\\n" + jsonStr);
+        });
+      }, 800);
+    }
+    function clearRibbonPress() {
+      clearTimeout(ribbonPressTimer);
+    }
+    if (ribbonEl) {
+      ribbonEl.addEventListener('mousedown', startRibbonPress);
+      ribbonEl.addEventListener('touchstart', startRibbonPress, { passive: true });
+      ribbonEl.addEventListener('mouseup', clearRibbonPress);
+      ribbonEl.addEventListener('mouseleave', clearRibbonPress);
+      ribbonEl.addEventListener('touchend', clearRibbonPress);
+      ribbonEl.addEventListener('touchcancel', clearRibbonPress);
+    }
   </script>
 </body>
 </html>`;
@@ -1159,15 +1536,25 @@ export default function App() {
           {/* =========================================================================
               A. LEFT COLUMN: THE INTERACTIVE CANVAS (lg: col-span-5)
              ========================================================================= */}
-          <section className="lg:col-span-5 flex justify-center items-center relative py-4 bg-white/20 rounded-3xl border border-white/60 shadow-xs backdrop-blur-xs min-h-[620px]">
+          <section 
+            className="lg:col-span-5 flex justify-center items-center relative py-8 rounded-3xl border border-white/20 shadow-xl transition-all duration-700 min-h-[620px] overflow-hidden"
+            style={{ background: selectedBackground.cssBackground }}
+          >
+            {/* Dynamic themed ambient particles */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+              {backgroundParticles.map((p) => (
+                <div key={p.id} className={p.className} style={p.style} />
+              ))}
+            </div>
+
             {/* Ambient Radial glowing bubble behind the canvas platform */}
             <div 
-              className="absolute w-[80%] h-[80%] rounded-full opacity-35 blur-3xl pointer-events-none transition-all duration-700" 
-              style={{ background: `radial-gradient(circle, ${selectedPaper.backColor} 0%, transparent 70%)` }}
+              className="absolute w-[85%] h-[85%] rounded-full opacity-40 blur-3xl pointer-events-none transition-all duration-700 z-0" 
+              style={{ background: `radial-gradient(circle, white 0%, ${selectedBackground.glowColor} 55%, transparent 100%)` }}
             />
             
             <BouquetCanvas
-              items={bouquetLayout}
+              items={dynamicBouquetLayout}
               activeHoverId={hoveredFlowerId}
               onHoverItem={setHoveredFlowerId}
               onSelectItem={handleSelectFlowerItem}
@@ -1205,138 +1592,379 @@ export default function App() {
               </div>
             </div>
 
-            {/* CONTROL 1: SELECT WRAPPING THEME */}
-            <div className="flex flex-col gap-2.5">
-              <label className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5">
-                <Palette size={14} className="text-rose-400" />
-                Matte Wrapping Paper Style
-              </label>
-
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mt-1">
-                {wrappingThemes.map((theme) => {
-                  const isCur = selectedPaper.id === theme.id;
-                  return (
-                    <button
-                      key={theme.id}
-                      onClick={() => setSelectedPaper(theme)}
-                      className={`text-left p-2.5 rounded-xl border transition-all duration-300 relative overflow-hidden group cursor-pointer ${
-                        isCur 
-                          ? 'border-rose-500 bg-rose-50/20 shadow-md ring-1 ring-rose-300' 
-                          : 'border-stone-200 hover:border-stone-300 bg-stone-50/40 hover:bg-stone-50/90'
-                      }`}
-                    >
-                      {/* Miniature wrap visual swatch */}
-                      <div className="flex gap-1 h-3.5 mb-1.5 rounded overflow-hidden">
-                        <div className="flex-1" style={{ backgroundColor: theme.backColor }} />
-                        <div className="flex-1" style={{ backgroundColor: theme.midColor }} />
-                        <div className="flex-1" style={{ backgroundColor: theme.frontColor }} />
-                      </div>
-
-                      <span className="font-sans text-[11px] font-bold text-stone-800 block truncate leading-none">
-                        {theme.name}
-                      </span>
-                      
-                      {/* active checkmark indicator */}
-                      {isCur && (
-                        <div className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-0.5 shadow-xs">
-                          <CheckCircle size={8} strokeWidth={3} />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+            {/* POCKET A: BOUQUET STRUCTURE & WRAP ASSEMBLY */}
+            <div className="bg-stone-50/60 border border-stone-200/80 rounded-2xl p-5 shadow-3xs flex flex-col gap-5">
+              <div className="flex items-center gap-2 pb-2 border-b border-stone-200/60">
+                <Palette size={15} className="text-rose-500" />
+                <h3 className="font-sans text-[11px] font-bold text-stone-700 uppercase tracking-wider">
+                  Pocket A: Wrap & Tie Elements
+                </h3>
               </div>
-              <p className="text-[10px] italic text-stone-400 mt-1 leading-normal">
-                {selectedPaper.description}
-              </p>
-            </div>
 
-            {/* CONTROL 2: SELECT RIBBON SILK */}
-            <div className="flex flex-col gap-2.5">
-              <label className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5">
-                <HeartHandshake size={14} className="text-rose-400" />
-                Satin Attachment Ribbons
-              </label>
+              {/* CONTROL 1: SELECT WRAPPING THEME */}
+              <div className="flex flex-col gap-2.5">
+                <label className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5">
+                  Matte Wrapping Paper Style
+                </label>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-1">
-                {ribbonThemes.map((rib) => {
-                  const isCur = selectedRibbon.id === rib.id;
-                  return (
-                    <button
-                      key={rib.id}
-                      onClick={() => setSelectedRibbon(rib)}
-                      className={`text-left p-2.5 rounded-xl border transition-all duration-300 relative group cursor-pointer ${
-                        isCur 
-                          ? 'border-amber-600 bg-amber-50/10 shadow-sm ring-1 ring-amber-400' 
-                          : 'border-stone-200 hover:border-stone-300 bg-stone-50/40 hover:bg-stone-50/85'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {/* Metallic loop swatch dot */}
-                        <div 
-                          className="w-4 h-4 rounded-full border border-black/10 shadow-inner"
-                          style={{
-                            background: `radial-gradient(circle, ${rib.primary} 0%, ${rib.secondary} 100%)`
-                          }}
-                        />
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-1">
+                  {wrappingThemes.map((theme) => {
+                    const isCur = selectedPaper.id === theme.id;
+                    return (
+                      <button
+                        type="button"
+                        key={theme.id}
+                        onClick={() => setSelectedPaper(theme)}
+                        className={`text-left p-2.5 rounded-xl border transition-all duration-300 relative overflow-hidden group cursor-pointer ${
+                          isCur 
+                            ? 'border-rose-500 bg-rose-50/20 shadow-md ring-1 ring-rose-300' 
+                            : 'border-stone-200 hover:border-stone-300 bg-white/70 hover:bg-white/90'
+                        }`}
+                      >
+                        {/* Miniature wrap visual swatch */}
+                        <div className="flex gap-1 h-3.5 mb-1.5 rounded overflow-hidden">
+                          <div className="flex-1" style={{ backgroundColor: theme.backColor }} />
+                          <div className="flex-1" style={{ backgroundColor: theme.midColor }} />
+                          <div className="flex-1" style={{ backgroundColor: theme.frontColor }} />
+                        </div>
+
                         <span className="font-sans text-[11px] font-bold text-stone-800 block truncate leading-none">
-                          {rib.name}
+                          {theme.name}
                         </span>
-                      </div>
-                      
-                      {isCur && (
-                        <div className="absolute top-1 right-1 bg-amber-600 text-white rounded-full p-0.5 shadow-xs">
-                          <CheckCircle size={8} strokeWidth={3} />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+                        
+                        {/* active checkmark indicator */}
+                        {isCur && (
+                          <div className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-0.5 shadow-xs">
+                            <CheckCircle size={8} strokeWidth={3} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] italic text-stone-400 mt-1 leading-normal">
+                  {selectedPaper.description}
+                </p>
               </div>
-              <p className="text-[10px] italic text-stone-400 mt-1 leading-normal">
-                {selectedRibbon.description}
-              </p>
+
+              {/* CONTROL 2: SELECT RIBBON SILK */}
+              <div className="flex flex-col gap-2.5 border-t border-stone-200/60 pt-4">
+                <label className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5">
+                  Satin Attachment Ribbons
+                </label>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-1">
+                  {ribbonThemes.map((rib) => {
+                    const isCur = selectedRibbon.id === rib.id;
+                    return (
+                      <button
+                        type="button"
+                        key={rib.id}
+                        onClick={() => setSelectedRibbon(rib)}
+                        className={`text-left p-2.5 rounded-xl border transition-all duration-300 relative group cursor-pointer ${
+                          isCur 
+                            ? 'border-amber-600 bg-amber-50/10 shadow-sm ring-1 ring-amber-400' 
+                            : 'border-stone-200 hover:border-stone-300 bg-white/70 hover:bg-white/85'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {/* Metallic loop swatch dot */}
+                          <div 
+                            className="w-4 h-4 rounded-full border border-black/10 shadow-inner"
+                            style={{
+                              background: `radial-gradient(circle, ${rib.primary} 0%, ${rib.secondary} 100%)`
+                            }}
+                          />
+                          <span className="font-sans text-[11px] font-bold text-stone-800 block truncate leading-none">
+                            {rib.name}
+                          </span>
+                        </div>
+                        
+                        {isCur && (
+                          <div className="absolute top-1 right-1 bg-amber-600 text-white rounded-full p-0.5 shadow-xs">
+                            <CheckCircle size={8} strokeWidth={3} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] italic text-stone-400 mt-1 leading-normal">
+                  {selectedRibbon.description}
+                </p>
+              </div>
+
+              {/* CONTROL 2A: SELECT GENERAL FOLIAGE LEAF COLOR */}
+              <div className="flex flex-col gap-2.5 border-t border-stone-200/60 pt-4">
+                <label className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5">
+                  Foliage Leaf Color Tint
+                </label>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-1">
+                  {LEAF_COLORS.map((lc) => {
+                    const isCur = selectedLeafColor === lc.id;
+                    return (
+                      <button
+                        type="button"
+                        key={lc.id}
+                        onClick={() => setSelectedLeafColor(lc.id)}
+                        className={`text-left p-2.5 rounded-xl border transition-all duration-300 relative group cursor-pointer ${
+                          isCur 
+                            ? 'border-emerald-600 bg-emerald-50/10 shadow-sm ring-1 ring-emerald-450' 
+                            : 'border-stone-200 hover:border-stone-300 bg-white/70 hover:bg-white/85'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded border border-black/10 shadow-inner"
+                            style={{
+                              background: `linear-gradient(135deg, ${lc.hex} 0%, ${lc.shadow} 100%)`
+                            }}
+                          />
+                          <span className="font-sans text-[11px] font-bold text-stone-800 block truncate leading-none">
+                            {lc.name}
+                          </span>
+                        </div>
+                        
+                        {isCur && (
+                          <div className="absolute top-1 right-1 bg-emerald-600 text-white rounded-full p-0.5 shadow-xs">
+                            <CheckCircle size={8} strokeWidth={3} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] italic text-stone-400 mt-1 leading-normal">
+                  Charming valid foliage colors including Harvest Yellows, Amber Oranges, and Fireside Crimson.
+                </p>
+              </div>
             </div>
 
-            {/* CONTROL 3: THEMED NOTE CARD WRITER */}
-            <div className="flex flex-col gap-2">
-              <label 
-                htmlFor="custom-tag-message"
-                className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5"
-              >
-                <Type size={14} className="text-amber-600" />
-                Hanging Letter Note
-              </label>
-              
-              <div className="relative mt-1">
-                <textarea
-                  id="custom-tag-message"
-                  rows={2}
-                  maxLength={65}
-                  value={customMsg}
-                  onChange={(e) => setCustomMsg(e.target.value)}
-                  placeholder="Type a heartwarming letter... (max 65 chars)"
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-stone-800 font-serif text-[13px] placeholder-stone-400 focus:outline-hidden focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none shadow-3xs leading-relaxed"
-                />
-                
-                {/* Length bar counters */}
-                <div className="absolute right-3.5 bottom-2 text-[9px] font-mono text-stone-400 font-semibold bg-stone-100 rounded px-1.5 py-0.2 border border-stone-150">
-                  {customMsg.length} / 65
+            {/* POCKET B: SCENIC BACKDROP ATMOSPHERE */}
+            <div className="bg-stone-50/60 border border-stone-200/80 rounded-2xl p-5 shadow-3xs flex flex-col gap-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-stone-200/60">
+                <Sparkles size={15} className="text-amber-500 animate-pulse" />
+                <h3 className="font-sans text-[11px] font-bold text-stone-700 uppercase tracking-wider">
+                  Pocket B: Ambient Scenery & Presets
+                </h3>
+              </div>
+
+              {/* CONTROL 2B: SELECT BACKGROUND ATMOSPHERE */}
+              <div className="flex flex-col gap-2.5">
+                <label className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5 flex-wrap">
+                  Bouquet Atmosphere Theme Background
+                </label>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-1">
+                  {backgroundThemes.map((bg) => {
+                    const isCur = selectedBackground.id === bg.id;
+                    return (
+                      <button
+                        type="button"
+                        key={bg.id}
+                        onClick={() => setSelectedBackground(bg)}
+                        className={`text-left p-2 rounded-xl border transition-all duration-300 relative overflow-hidden group cursor-pointer ${
+                          isCur 
+                            ? 'border-amber-600 bg-amber-50/10 shadow-sm ring-1 ring-amber-400' 
+                            : 'border-stone-200 hover:border-stone-300 bg-white/70 hover:bg-white/85'
+                        }`}
+                      >
+                        <div className="flex gap-2 items-center">
+                          {/* Swatch of background */}
+                          <div 
+                            className="w-5 h-5 rounded-md border border-neutral-300 shadow-inner shrink-0" 
+                            style={{ background: bg.cssBackground }}
+                          />
+                          <span className="font-sans text-[11px] font-bold text-stone-800 block truncate leading-none">
+                            {bg.name}
+                          </span>
+                        </div>
+                        
+                        {isCur && (
+                          <div className="absolute top-1 right-1 bg-amber-600 text-white rounded-full p-0.5 shadow-xs">
+                            <CheckCircle size={8} strokeWidth={3} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] italic text-stone-400 mt-1 leading-normal">
+                  {selectedBackground.description} — The matching theme coordinates drifting petals, leaves, embers, or stars respectively.
+                </p>
+              </div>
+
+            {/* CONTROL 2C: IMPORT / EXPORT PRESETS */}
+            <div className="flex flex-col gap-2.5 border-t border-stone-100 pt-5">
+              <div className="flex items-center justify-between">
+                <label className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5">
+                  <Download size={14} className="text-stone-500" />
+                  Preserved Style Ledger (JSON)
+                </label>
+
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ledger = {
+                        paperId: selectedPaper.id,
+                        ribbonId: selectedRibbon.id,
+                        backgroundId: selectedBackground.id,
+                        leafColor: selectedLeafColor,
+                        customMsg: customMsg,
+                        flowers: activeFlowers
+                      };
+                      const jsonText = JSON.stringify(ledger, null, 2);
+                      navigator.clipboard.writeText(jsonText).then(() => {
+                        alert("📋 Success! All Bouquet Styles (Wrapping, ribbon, background, leaves, letter message & botanical texts) copied to clipboard as JSON structure!");
+                      });
+                    }}
+                    className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-700 hover:text-amber-850 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg px-2.5 py-1.5 transition-all cursor-pointer"
+                  >
+                    <Download size={11} />
+                    Export
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowImportArea(!showImportArea)}
+                    className="inline-flex items-center gap-1.5 text-[10px] font-bold text-stone-600 hover:text-stone-800 bg-stone-150/60 hover:bg-stone-205 border border-stone-300 rounded-lg px-2.5 py-1.5 transition-all cursor-pointer"
+                  >
+                    <Upload size={11} />
+                    {showImportArea ? 'Hide Import' : 'Import'}
+                  </button>
                 </div>
               </div>
+
+              {showImportArea && (
+                <div className="mt-2 p-3 bg-stone-105/70 rounded-xl border border-stone-200 flex flex-col gap-2">
+                  <p className="text-[10px] text-stone-500 leading-normal font-medium">
+                    Paste a previously copied Preset JSON string below to rehydrate your entire interactive bouquet setup instantly:
+                  </p>
+                  <textarea
+                    rows={4}
+                    value={importJsonText}
+                    onChange={(e) => setImportJsonText(e.target.value)}
+                    placeholder='e.g. { "paperId": "parchment", "ribbonId": "satin", "backgroundId": "aurora", ... }'
+                    className="w-full bg-white border border-stone-200 rounded-lg p-2.5 font-mono text-[10px] text-stone-800 focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-normal"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!importJsonText.trim()) return;
+                      try {
+                        const parsed = JSON.parse(importJsonText);
+                        if (!parsed || typeof parsed !== 'object') {
+                          throw new Error("Preserves must be structured JSON object");
+                        }
+                        
+                        // Hydrate Wrapping
+                        if (parsed.paperId) {
+                          const matchedPaper = wrappingThemes.find(p => p.id === parsed.paperId);
+                          if (matchedPaper) setSelectedPaper(matchedPaper);
+                        }
+                        // Hydrate Ribbon
+                        if (parsed.ribbonId) {
+                          const matchedRibbon = ribbonThemes.find(r => r.id === parsed.ribbonId);
+                          if (matchedRibbon) setSelectedRibbon(matchedRibbon);
+                        }
+                        // Hydrate Background
+                        if (parsed.backgroundId) {
+                          const matchedBg = backgroundThemes.find(b => b.id === parsed.backgroundId);
+                          if (matchedBg) setSelectedBackground(matchedBg);
+                        }
+                        // Hydrate Leaf Color selection
+                        if (parsed.leafColor) {
+                          const matchedLeaf = LEAF_COLORS.find(lf => lf.id === parsed.leafColor);
+                          if (matchedLeaf) setSelectedLeafColor(parsed.leafColor);
+                        }
+                        // Hydrate General note card
+                        if (typeof parsed.customMsg === 'string') {
+                          setCustomMsg(parsed.customMsg);
+                        }
+                        // Hydrate Active flowers list
+                        if (Array.isArray(parsed.flowers)) {
+                          setActiveFlowers(parsed.flowers);
+                        }
+                        
+                        alert("🎉 Incredible! Bouquet Style ledger has been successfully imported and rendered in live preview canvas!");
+                        setShowImportArea(false);
+                      } catch (err) {
+                        alert("⚠️ Format Error: Invalid Preset JSON config template. Please verify that the whole text was copied correctly. Detail: " + (err as Error).message);
+                      }
+                    }}
+                    className="w-full py-2 bg-stone-900 hover:bg-stone-850 text-white font-sans text-xs font-bold rounded-lg transition-all shadow-sm cursor-pointer"
+                  >
+                    Parse & Hydrate Bouquet Canvas
+                  </button>
+                  </div>
+              )}
+            </div>
             </div>
 
-            {/* CONTROL 4: BOTANICAL DIRECTORY & LETTERS EDITOR */}
-            <div className="flex flex-col gap-2 border-t border-stone-100 pt-5 mt-1">
-              <div className="flex items-center justify-between mb-2">
-                <label className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5">
-                  <Info size={14} className="text-amber-600" />
-                  Botanical Letters Customizer
-                </label>
-                <span className="font-mono text-[9px] text-stone-400 font-semibold tracking-wide">
-                  Select a flower code below to edit its letter
-                </span>
+            {/* POCKET C: DEDICATED LETTERS OFFICE */}
+            <div className="bg-stone-50/60 border border-stone-200/80 rounded-2xl p-5 shadow-3xs flex flex-col gap-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-stone-200/60">
+                <BookOpen size={15} className="text-amber-600" />
+                <h3 className="font-sans text-[11px] font-bold text-stone-700 uppercase tracking-wider">
+                  Pocket C: Dedications & Letter Office
+                </h3>
               </div>
+
+              {/* CONTROL 3: THEMED NOTE CARD WRITER */}
+              <div className="flex flex-col gap-2">
+                <label 
+                  htmlFor="custom-tag-message"
+                  className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5"
+                >
+                  Hanging Letter Note
+                </label>
+                
+                <div className="relative mt-1">
+                  <textarea
+                    id="custom-tag-message"
+                    rows={2}
+                    maxLength={65}
+                    value={customMsg}
+                    onChange={(e) => setCustomMsg(e.target.value)}
+                    placeholder="Type a heartwarming letter... (max 65 chars)"
+                    className="w-full bg-white border border-stone-200 rounded-xl p-3 text-stone-800 font-serif text-[13px] placeholder-stone-400 focus:outline-hidden focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none shadow-3xs leading-relaxed"
+                  />
+                  
+                  {/* Length bar counters */}
+                  <div className="absolute right-3.5 bottom-2 text-[9px] font-mono text-stone-400 font-semibold bg-stone-100 rounded px-1.5 py-0.2 border border-stone-150">
+                    {customMsg.length} / 65
+                  </div>
+                </div>
+              </div>
+
+              {/* CONTROL 4: BOTANICAL DIRECTORY & LETTERS EDITOR */}
+              <div className="flex flex-col gap-2 border-t border-stone-200/60 pt-4 mt-1">
+                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                  <label className="font-display text-xs font-bold text-stone-800 tracking-wider uppercase flex items-center gap-1.5">
+                    Botanical Letters Customizer
+                  </label>
+                  <span className="font-mono text-[9px] text-stone-400 font-semibold tracking-wide">
+                    Select a flower code below to edit its letter
+                  </span>
+                </div>
+
+                {/* Add / Count panel for dynamic message flowers */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-stone-200/80 mb-2">
+                  <button
+                    type="button"
+                    onClick={handleAddFlower}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-750 text-white font-sans text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
+                    title="Sprout another custom flower block"
+                  >
+                    <Plus size={13} strokeWidth={2.5} />
+                    Add Msg Flower
+                  </button>
+                  <div className="font-sans text-[11px] text-stone-500 leading-normal font-semibold">
+                    Count: <strong>{interactiveFlowers.length}</strong> | Limit: <strong>{FLOWER_SLOTS.length}</strong>.
+                  </div>
+                </div>
 
               {/* Grid of registered botanical messages */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1388,18 +2016,32 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Small action button on the far right */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedFlowerMsg(item.msg!);
-                        }}
-                        className="text-stone-500 hover:text-amber-700 transition-colors text-[10px] font-bold uppercase tracking-wider shrink-0 bg-stone-100 hover:bg-stone-200 px-2.5 py-1 rounded-md cursor-pointer font-mono"
-                        title="Open Botanical Reader Modal"
-                      >
-                        Read
-                      </button>
+                      {/* Small action buttons on the far right */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedFlowerMsg(item.msg!);
+                          }}
+                          className="text-stone-600 hover:text-amber-700 transition-colors text-[10px] font-bold uppercase tracking-wider shrink-0 bg-stone-100 hover:bg-stone-200 px-2.5 py-1 rounded-md cursor-pointer font-mono"
+                        >
+                          Read
+                        </button>
+                        {activeFlowers.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFlower(item.msg!);
+                            }}
+                            className="bg-white border border-stone-200 text-stone-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg transition-all cursor-pointer hover:border-rose-100"
+                            title={`Prune ${item.msg} blossom`}
+                          >
+                            <Trash2 size={11} strokeWidth={2.2} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -1496,6 +2138,7 @@ export default function App() {
                 </div>
               )}
             </div>
+            </div>
 
             {/* FOOTER ACTION PANEL */}
             <div className="border-t border-stone-100 pt-5 flex flex-col sm:flex-row items-center gap-3 justify-between mt-2">
@@ -1540,7 +2183,8 @@ export default function App() {
       {/* =========================================================================
           3. COMPREHENSIVE BOTANICAL EXPLANATION FOOTER
          ========================================================================= */}
-      <footer className="mt-16 max-w-2xl mx-auto px-4 text-sans tracking-wide">
+      <footer className="mt-16 max-w-2xl mx-auto px-4 font-sans tracking-wide pb-24">
+        {/* Layer 1: Pure mechanical vector artwork explanation */}
         <div className="text-center text-[11px] text-stone-400 leading-relaxed mb-6">
           <p className="flex items-center justify-center gap-1.5 font-semibold text-stone-500 uppercase tracking-widest text-[9px]">
             <span>●</span>
@@ -1548,65 +2192,134 @@ export default function App() {
             <span>●</span>
             No External Assets
             <span>●</span>
+            100% Vector CSS Art
           </p>
-          <p className="mt-2.5 italic">
-            Every tulip petal, seed, sway motion, leaf vein, and wrap crease is calculated dynamically using DOM nesting and custom quadratic curves in raw CSS. Open on desktop or tablet for high precision layouts and tactile micro-hovering depth cards.
+          <p className="mt-2 text-stone-400 italic">
+            Each tulip petal, swaying leaf, and wrap crease is calculated dynamically using DOM nodes and mathematical trigonometry in raw styled CSS.
           </p>
         </div>
 
-        {/* P.S. AI Coding Agent Craftmanship Showcase Card */}
-        <div className="bg-white/60 backdrop-blur-xs border border-stone-200/80 rounded-2xl p-5 shadow-3xs text-left text-xs text-stone-700 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-200/15 via-rose-200/15 to-transparent rounded-bl-full pointer-events-none" />
+        {/* Layer 2: Self-promotional Google AI Studio Showcase card */}
+        <div className="bg-white/70 backdrop-blur-xs border border-stone-200/80 rounded-2xl p-5 shadow-3xs text-left text-xs text-stone-705 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-200/10 via-rose-200/10 to-transparent rounded-bl-full pointer-events-none" />
           
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="font-mono text-[10px] uppercase font-bold text-stone-450 tracking-wider">
-              P.S. — Crafted by AI
-            </span>
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-mono text-[9px] uppercase font-bold text-stone-450 tracking-wider">
+                Google AI Studio Agent Craft
+              </span>
+            </div>
+            <a 
+              href="https://ai.studio/build" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-sans text-[10px] font-bold text-amber-700 hover:text-amber-850 bg-amber-50 px-2.5 py-1 rounded border border-amber-200 transition-colors"
+            >
+              Build your own app ↗
+            </a>
           </div>
 
-          <p className="font-serif italic text-stone-800 text-[13px] leading-relaxed mb-4">
-            "Hello! I am <span className="font-sans font-bold text-stone-900 not-italic">Google AI Studio's AI Coding Agent</span>, powered by the <span className="text-amber-700 font-semibold not-italic">Antigravity</span> framework and <span className="text-rose-600 font-semibold not-italic">Gemini</span> intelligence. Together with you, I evolved this creative space into a fully reactive, customizable floristry suite!"
+          <p className="font-serif italic text-stone-800 text-[13px] leading-relaxed mb-3">
+            "Hello! I am <strong className="font-sans font-bold text-stone-900 not-italic">Google AI Studio's AI Coding Agent</strong>, powered by the <span className="text-amber-700 font-semibold not-italic">Antigravity</span> system and cutting-edge <span className="text-rose-600 font-semibold not-italic">Gemini</span> model intelligence."
           </p>
 
-          <div className="border-t border-stone-100 pt-3.5">
-            <h4 className="font-sans text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-              <Sparkles size={11} className="text-amber-500" />
-              Upgrade Highlights:
-            </h4>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-3 font-sans text-[11px] text-stone-600 leading-snug">
-              <li className="flex items-start gap-1.5">
-                <span className="text-amber-500 font-bold shrink-0">•</span>
-                <span>
-                  <strong className="text-stone-800 font-medium">Fluid Auto-Scaling Canvas:</strong> Implemented a reactive <code className="font-mono text-[9px] bg-stone-100 px-1 py-0.5 rounded text-amber-700">ResizeObserver</code> wrapper system that dynamically scales the 440px raw CSS bouquet frame down to fit smaller mobile screens beautifully without clipped margins.
-                </span>
-              </li>
-              <li className="flex items-start gap-1.5">
-                <span className="text-rose-500 font-bold shrink-0">•</span>
-                <span>
-                  <strong className="text-stone-800 font-medium">Interactive Letters Engine:</strong> Introduced a live Botanical Letters Registry where text fields and symbolism titles immediately sync and trigger interactive aesthetic card previews.
-                </span>
-              </li>
-              <li className="flex items-start gap-1.5">
-                <span className="text-amber-500 font-bold shrink-0">•</span>
-                <span>
-                  <strong className="text-stone-800 font-medium">Dynamic Image Cover:</strong> Enabled input slots for custom letters cover imagery, adding a default Unsplash floral image fallback and runtime error load safety checks.
-                </span>
-              </li>
-              <li className="flex items-start gap-1.5">
-                <span className="text-rose-500 font-bold shrink-0">•</span>
-                <span>
-                  <strong className="text-stone-800 font-medium">Responsive Copied Snippets:</strong> Restructured the generated standalone HTML to output CSS scaling variables, ensuring exported bouquets fit any host container perfectly.
-                </span>
-              </li>
-            </ul>
+          <p className="text-[11px] text-stone-500 leading-relaxed">
+            I evolved this application directly from a basic layout into a comprehensive floristry customization canvas. I authored responsive visual scale wrappers, dynamic particle controllers, full clipboard preservation parsing utilities, and dynamic asset structures entirely in code.
+          </p>
+          
+          <div className="mt-3.5 pt-3 border-t border-stone-200/60 flex items-center justify-between text-[10px] text-stone-400">
+            <span className="font-mono">Model: Gemini 1.5 Pro</span>
+            <a 
+              href="https://deepmind.google/technologies/gemini/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-bold text-stone-500 hover:text-stone-900 transition-colors underline underline-offset-2"
+            >
+              Learn more about me ↗
+            </a>
           </div>
         </div>
       </footer>
 
       {/* =========================================================================
-          4. MODAL DIALOGS (zIndex: 50)
+          4. FLOATING ACTION CONTROLS & OVERLAYS
          ========================================================================= */}
+      
+      {/* Floating Action Trigger on the bottom-center of the screen */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+        <button
+          type="button"
+          onClick={() => setShowFullscreenPreview(true)}
+          className="inline-flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-stone-900 to-stone-800 text-white rounded-full shadow-2xl hover:scale-105 active:scale-95 hover:from-stone-850 hover:to-stone-750 transition-all font-semibold font-sans text-xs tracking-wider uppercase cursor-pointer border border-white/10"
+        >
+          <Maximize size={13} className="text-amber-400 animate-pulse" />
+          Preview Bouquet Theater
+        </button>
+      </div>
+
+      {/* Immersive theatrical fullscreen visual preview of the bouquet */}
+      {showFullscreenPreview && (
+        <div 
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 backdrop-blur-3xl transition-all duration-700 select-none"
+          style={{ background: selectedBackground.cssBackground }}
+        >
+          {/* Cascade of theme drifting particles */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+            {backgroundParticles.map((p) => (
+              <div key={`fs-preview-part-${p.id}`} className={p.className} style={p.style} />
+            ))}
+          </div>
+
+          {/* Exhibition Canvas Box */}
+          <div className="relative w-full max-w-lg z-10 flex flex-col items-center justify-center">
+            
+            <div className="text-center mb-6">
+              <span className="font-sans text-[10px] uppercase font-bold tracking-widest text-amber-500 bg-black/40 px-3 py-1 rounded-full border border-amber-500/20 shadow-lg">
+                ✨ Theater Exhibition Mode ✨
+              </span>
+              <h2 className="font-display text-2xl font-bold tracking-tight text-white mt-2 drop-shadow-sm">
+                Your Botanical Masterpiece
+              </h2>
+              <p className="text-xs text-stone-300 italic font-serif mt-1">
+                Tap notes to read dedicated letters or hover to examine blossoms.
+              </p>
+            </div>
+
+            {/* Scale wrapper */}
+            <div className="p-4 sm:p-8 bg-black/15 border border-white/10 rounded-3xl shadow-3xl flex justify-center items-center min-h-[555px] relative overflow-hidden w-full">
+              <div 
+                className="absolute w-[80%] h-[80%] rounded-full opacity-35 blur-3xl pointer-events-none" 
+                style={{ background: `radial-gradient(circle, white 0%, ${selectedBackground.glowColor} 55%, transparent 100%)` }}
+              />
+
+              <BouquetCanvas
+                items={dynamicBouquetLayout}
+                activeHoverId={hoveredFlowerId}
+                onHoverItem={setHoveredFlowerId}
+                onSelectItem={handleSelectFlowerItem}
+                paperTheme={selectedPaper}
+                ribbonTheme={selectedRibbon}
+                customCardMsg={customMsg}
+              />
+            </div>
+
+            {/* Control buttons */}
+            <div className="mt-8 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowFullscreenPreview(false)}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-neutral-100 text-stone-900 border border-stone-200 shadow-xl rounded-full font-sans text-xs font-bold tracking-wider uppercase transition-all cursor-pointer hover:scale-105"
+              >
+                <X size={13} className="text-red-500" strokeWidth={3} />
+                Return to Workbench
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Primary category letter reader modal */}
       <Modal
         isOpen={selectedFlowerMsg !== null}
         onClose={() => setSelectedFlowerMsg(null)}

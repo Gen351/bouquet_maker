@@ -41,3 +41,12 @@ export interface RibbonTheme {
   secondary: string;
   description: string;
 }
+
+export interface BackgroundTheme {
+  id: string;
+  name: string;
+  cssBackground: string;
+  glowColor: string;
+  textColor: string;
+  description: string;
+}

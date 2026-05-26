@@ -1,4 +1,4 @@
-import { BouquetItem, MessageDetail, WrappingTheme, RibbonTheme } from './types';
+import { BouquetItem, MessageDetail, WrappingTheme, RibbonTheme, BackgroundTheme } from './types';
 
 export const BASE_POINT = { x: 50, y: 78 }; // Tie point where ribbon lies
 
@@ -149,6 +149,36 @@ export const wrappingThemes: WrappingTheme[] = [
     innerGrad: 'linear-gradient(to top, #dbeafe, #eff6ff)',
     glowColor: 'rgba(96, 165, 250, 0.25)',
     description: 'Serene, clean sky blue wrap with soft ivory inner texture.',
+  },
+  {
+    id: 'parchment',
+    name: 'Golden Parchment',
+    backColor: '#b45309',
+    midColor: '#fde68a',
+    frontColor: '#fffbeb',
+    innerGrad: 'linear-gradient(to top, #fffbeb, #fef3c7)',
+    glowColor: 'rgba(217, 119, 6, 0.2)',
+    description: 'Warm textured linen paper for rustic hand-picked vintage card details.',
+  },
+  {
+    id: 'ebony',
+    name: 'Obsidian Velvet',
+    backColor: '#0f172a',
+    midColor: '#1e293b',
+    frontColor: '#334155',
+    innerGrad: 'linear-gradient(to top, #1e293b, #0f172a)',
+    glowColor: 'rgba(51, 65, 85, 0.3)',
+    description: 'Sleek matte charcoal paper, adding striking contrast to golden petals.',
+  },
+  {
+    id: 'plum',
+    name: 'Bordeaux Silk',
+    backColor: '#701a75',
+    midColor: '#c084fc',
+    frontColor: '#fdf4ff',
+    innerGrad: 'linear-gradient(to top, #fdf4ff, #fae8ff)',
+    glowColor: 'rgba(162, 28, 175, 0.25)',
+    description: 'Deep plum-burgundy folds with sweet lavender interior margins.',
   }
 ];
 
@@ -180,5 +210,161 @@ export const ribbonThemes: RibbonTheme[] = [
     primary: '#f8fafc', // slate-50
     secondary: '#cbd5e1', // slate-300
     description: 'Elegant ivory cream pure silk ribbon.'
+  },
+  {
+    id: 'ocean_blue',
+    name: 'Ocean Blue Silk',
+    primary: '#0284c7',
+    secondary: '#0c4a6e',
+    description: 'Vibrant sea-blue satin thread with high luxury finish.'
+  },
+  {
+    id: 'sweet_rose',
+    name: 'Blossom Pink Satin',
+    primary: '#ec4899',
+    secondary: '#9d174d',
+    description: 'Sweet pastel pink ribbon, matching romantic notes.'
+  },
+  {
+    id: 'bronze',
+    name: 'Antique Bronze',
+    primary: '#b45309',
+    secondary: '#451a03',
+    description: 'Noble rustic bronze ribbon with classical thread details.'
   }
 ];
+
+export const backgroundThemes: BackgroundTheme[] = [
+  {
+    id: 'classic',
+    name: 'Classic Warm',
+    cssBackground: 'linear-gradient(135deg, #fff5f7 0%, #ffeec3 100%)',
+    glowColor: 'rgba(251, 113, 133, 0.2)',
+    textColor: '#292524',
+    description: 'Soft warm pink-yellow cream gradient'
+  },
+  {
+    id: 'city',
+    name: 'City Dusk',
+    cssBackground: 'linear-gradient(135deg, #0b0f19 0%, #1e293b 50%, #312e81 100%)',
+    glowColor: 'rgba(250, 204, 21, 0.3)',
+    textColor: '#f8fafc',
+    description: 'Deep midnight blue with amber skyline lights'
+  },
+  {
+    id: 'jungle',
+    name: 'Deep Jungle',
+    cssBackground: 'linear-gradient(135deg, #022c22 0%, #064e3b 50%, #065f46 100%)',
+    glowColor: 'rgba(74, 222, 128, 0.35)',
+    textColor: '#f0fdf4',
+    description: 'Tropical rich canopy with warm moss gold tones'
+  },
+  {
+    id: 'forest',
+    name: 'Ancient Forest',
+    cssBackground: 'linear-gradient(135deg, #052e16 0%, #14532d 50%, #15803d 100%)',
+    glowColor: 'rgba(34, 197, 94, 0.3)',
+    textColor: '#f0fdf4',
+    description: 'Majestic evergreen woodland shades'
+  },
+  {
+    id: 'taiga',
+    name: 'Misty Taiga',
+    cssBackground: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%)',
+    glowColor: 'rgba(45, 212, 191, 0.3)',
+    textColor: '#f1f5f9',
+    description: 'Boreal dark spruces meets foggy mountain teal'
+  },
+  {
+    id: 'desert',
+    name: 'Sahara Sands',
+    cssBackground: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 50%, #ea580c 100%)',
+    glowColor: 'rgba(254, 215, 170, 0.35)',
+    textColor: '#fff7ed',
+    description: 'Warm glowing dune dust with sunset skies'
+  },
+  {
+    id: 'snow',
+    name: 'Arctic Snow',
+    cssBackground: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #93c5fd 100%)',
+    glowColor: 'rgba(255, 255, 255, 0.7)',
+    textColor: '#1e293b',
+    description: 'Frosty cool ice-blue skies with white sparkles'
+  },
+  {
+    id: 'aurora',
+    name: 'Celestial Aurora',
+    cssBackground: 'linear-gradient(135deg, #030712 0%, #1e1b4b 60%, #0d9488 100%)',
+    glowColor: 'rgba(52, 211, 153, 0.45)',
+    textColor: '#f8fafc',
+    description: 'Midnight star canopy with waves of stellar teal'
+  },
+  {
+    id: 'cherry',
+    name: 'Cherry Blossom',
+    cssBackground: 'linear-gradient(135deg, #fff1f2 0%, #fbcfe8 50%, #f472b6 100%)',
+    glowColor: 'rgba(244, 114, 182, 0.35)',
+    textColor: '#1e293b',
+    description: 'Ethereal sakura shower in beautiful spring bloom'
+  },
+  {
+    id: 'school',
+    name: 'Vintage Classroom',
+    cssBackground: 'linear-gradient(135deg, #064e3b 0%, #0f5132 50%, #78350f 100%)',
+    glowColor: 'rgba(251, 191, 36, 0.3)',
+    textColor: '#f8fafc',
+    description: 'Deep mahogany desks and vintage dark slate blackboard'
+  },
+  {
+    id: 'cosmic',
+    name: 'Cosmic Starfield',
+    cssBackground: 'linear-gradient(135deg, #090514 0%, #1e1b4b 60%, #4c1d95 100%)',
+    glowColor: 'rgba(167, 139, 250, 0.45)',
+    textColor: '#f8fafc',
+    description: 'Deep galaxies and violet stardust nebula clouds'
+  },
+  {
+    id: 'sunset',
+    name: 'Dusk Sunset',
+    cssBackground: 'linear-gradient(135deg, #881337 0%, #db2777 45%, #ea580c 100%)',
+    glowColor: 'rgba(251, 146, 60, 0.45)',
+    textColor: '#fff5f5',
+    description: 'Brilliant horizontal sunset rays over autumn haze'
+  },
+  {
+    id: 'ocean',
+    name: 'Deep Ocean',
+    cssBackground: 'linear-gradient(135deg, #082f49 0%, #0284c7 60%, #0d9488 100%)',
+    glowColor: 'rgba(56, 189, 248, 0.4)',
+    textColor: '#f0f9ff',
+    description: 'Breathtaking aquatic depths with bioluminescent reefs'
+  },
+  {
+    id: 'bedroom',
+    name: 'Cozy Bedroom',
+    cssBackground: 'linear-gradient(135deg, #fdf8f5 0%, #f5ebd8 55%, #dfa04b 100%)',
+    glowColor: 'rgba(245, 158, 11, 0.25)',
+    textColor: '#332715',
+    description: 'Warm nightstand lamp sepia linen glows'
+  }
+];
+
+export const staticFoliage: BouquetItem[] = bouquetLayout.filter(f => !f.msg);
+
+export const FLOWER_SLOTS = [
+  { id: '1', theme: 'sunflower' as const, x: 50, y: 31, scale: 1.34, zIndex: 12, rotation: 0 },
+  { id: '2', theme: 'tulip' as const, x: 36, y: 35, scale: 1.15, zIndex: 10, rotation: -12 },
+  { id: '3', theme: 'tulip' as const, x: 64, y: 35, scale: 1.15, zIndex: 10, rotation: 12 },
+  { id: '4', theme: 'tulip' as const, x: 50, y: 48, scale: 1.28, zIndex: 13, rotation: 0 },
+  { id: '5', theme: 'sunflower' as const, x: 34, y: 44, scale: 1.20, zIndex: 11, rotation: -8 },
+  { id: '6', theme: 'sunflower' as const, x: 66, y: 44, scale: 1.20, zIndex: 11, rotation: 8 },
+  { id: '7', theme: 'tulip' as const, x: 50, y: 22, scale: 1.10, zIndex: 6, rotation: 4 },
+  { id: '8', theme: 'sunflower' as const, x: 26, y: 33, scale: 1.08, zIndex: 8, rotation: -20 },
+  { id: '9', theme: 'sunflower' as const, x: 74, y: 33, scale: 1.08, zIndex: 8, rotation: 20 },
+  { id: '10', theme: 'tulip' as const, x: 24, y: 49, scale: 1.05, zIndex: 12, rotation: -30 },
+  { id: '11', theme: 'tulip' as const, x: 76, y: 49, scale: 1.05, zIndex: 12, rotation: 30 },
+  { id: '12', theme: 'tulip' as const, x: 42, y: 41, scale: 1.0, zIndex: 9, rotation: -6 },
+  { id: '13', theme: 'tulip' as const, x: 58, y: 41, scale: 1.0, zIndex: 9, rotation: 6 }
+];
+
+
