@@ -1,0 +1,6 @@
+{
+  "name": "3D Bouquet Visualizer",
+  "description": "An elegant, interactive 3D bouquet visualizer using CSS art and dynamic math positioning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

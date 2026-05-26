@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-display: "Cinzel", "Playfair Display", serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-sway-slow: sway-slow 4.5s ease-in-out infinite;
+  --animate-sway-med: sway-med 3.5s ease-in-out infinite;
+  --animate-card-swing: card-swing 5s ease-in-out infinite;
+  --animate-sparkle: sparkle 2.5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(0.8deg);
+  }
+}
+
+@keyframes sway-slow {
+  0%, 100% {
+    transform: rotate(var(--sway-angle, -5deg));
+  }
+  50% {
+    transform: rotate(calc(var(--sway-angle, -5deg) + 3deg));
+  }
+}
+
+@keyframes sway-med {
+  0%, 100% {
+    transform: rotate(var(--sway-angle, 5deg));
+  }
+  50% {
+    transform: rotate(calc(var(--sway-angle, 5deg) - 4deg));
+  }
+}
+
+@keyframes card-swing {
+  0%, 100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(-15deg) translateY(1px);
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* Custom styles for 3D textures */
+.textured-seed {
+  background: radial-gradient(circle at center, #261204 0%, #3a1c02 35%, #592c04 70%, #150901 100%);
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.9);
+}
+
+.petal-shadow {
+  box-shadow: inset 0 -6px 12px rgba(0, 0, 0, 0.12), 2px 4px 6px rgba(0, 0, 0, 0.08);
+}
+
+.wrapping-shadow {
+  filter: drop-shadow(0 15px 25px rgba(225, 175, 190, 0.3));
+}
+
+.paper-inner-shadow {
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.06);
+}
+
+/* Base resets & full viewport layout centering */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  font-family: var(--font-sans);
+}
+
